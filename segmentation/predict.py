@@ -37,7 +37,7 @@ def segment_images(img_dir, model):
         os.makedirs(os.path.join(img_dir, 'masks'))
 
   # define images
-  image_paths = glob.glob(os.path.join(img_dir, "images", "*.tif"))
+  image_paths = glob.glob(os.path.join(img_dir, "images", "*.png"))
 
   print("Segmenting ",len(image_paths) , " images")
   for img_path in tqdm(image_paths):

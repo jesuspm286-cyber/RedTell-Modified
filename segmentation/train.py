@@ -43,7 +43,7 @@ def perform_training(data_loader_train, num_classes=2, num_epochs=15):
     model.train()
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
+    optimizer = torch.optim.SGD(params, lr=0.001,
                                 momentum=0.9, weight_decay=0.0005)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                     step_size=5,
@@ -82,7 +82,7 @@ def visualize_and_save_model_predictions(model, data_loader_test):
       masks = prediction[0]['masks'][:,0].cpu().numpy()
 
       prob_threshold = 0.5
-      image_masks = np.zeros((572,572))
+      image_masks = np.zeros(masks.shape[1:], dtype=np.float32)
 
       for i in range(0, masks.shape[0]):
         mask_i = masks[i, :, :]

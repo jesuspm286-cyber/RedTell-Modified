@@ -34,14 +34,22 @@ def extract_features_for_cells_in_single_img(img_path, mask_path,
                                               feature_extractor, region_props):
 
   img = np.asarray(Image.open(img_path).convert('L'))
-  sitk_img = sitk.GetImageFromArray(img, 0)
   masks = np.array(Image.open(mask_path))
 
-  num_masks = np.max(masks)
+  sitk_img = sitk.GetImageFromArray(img, 0)
+  
+  if img.shape != masks.shape:
+    print("Size mismatch:")
+    print(" image:", img_path, img.shape)
+    print(" mask: ", mask_path, masks.shape)
+    return []
+
+  labels = np.unique(masks)
+  labels = labels[labels != 0]
 
   extracted_features = []
 
-  for i in range(1, num_masks+1):
+  for i in labels:
  
     mask = np.where(masks == i, 1, 0)
 
@@ -56,7 +64,12 @@ def extract_features_for_cells_in_single_img(img_path, mask_path,
 
         # pyradiomics
         sitk_mask = sitk.GetImageFromArray(mask, 0)
-        pyradiomics_results_raw = feature_extractor.execute(sitk_img, sitk_mask)
+        try:
+          pyradiomics_results_raw = feature_extractor.execute(sitk_img, sitk_mask)
+        except Exception as e:
+          print("Skipping cell", i, "in", img_path, "because:", e)
+          continue
+
         pyradiomics_results = {}
         for feature in pyradiomics_results_raw.keys():
           try:
@@ -86,18 +99,41 @@ def extract_features_for_single_channel(img_dir):
   feature_extractor = initialize_feature_extractor()
   region_props = initialize_region_props()
 
-  img_paths = sorted(glob.glob(os.path.join(img_dir, "*.tif")))
-  mask_paths = sorted(glob.glob(os.path.join(os.path.dirname(img_dir), "masks", "*.tif")))
+  img_paths = sorted(
+      glob.glob(os.path.join(img_dir, "*.tif")) +
+      glob.glob(os.path.join(img_dir, "*.tiff")) +
+      glob.glob(os.path.join(img_dir, "*.png"))
+  )
 
+  mask_paths = sorted(
+      glob.glob(os.path.join(os.path.dirname(img_dir), "masks", "*.tif")) +
+      glob.glob(os.path.join(os.path.dirname(img_dir), "masks", "*.tiff")) +
+      glob.glob(os.path.join(os.path.dirname(img_dir), "masks", "*.png"))
+  )
+
+  mask_dict = {
+      os.path.basename(p): p
+      for p in mask_paths
+  }
 
   dataset_features = []
 
-  for img_path, mask_path in tqdm(zip(img_paths, mask_paths)):
+  for img_path in tqdm(img_paths):
 
-    assert img_path.split("/")[-1] == mask_path.split("/")[-1]
+    fname = os.path.basename(img_path)
 
-    img_features = extract_features_for_cells_in_single_img(img_path, mask_path,
-                                                            feature_extractor, region_props)
+    if fname not in mask_dict:
+      print("Skipping image without mask:", fname)
+      continue
+
+    mask_path = mask_dict[fname]
+
+    img_features = extract_features_for_cells_in_single_img(
+        img_path, mask_path, feature_extractor, region_props
+    )
+
+    print(fname, "features extracted:", len(img_features))
+
     dataset_features.extend(img_features)
 
   return dataset_features
@@ -106,6 +142,11 @@ def create_feature_table(extracted_features, feature_dict):
 
   df_extracted_features = pd.DataFrame(extracted_features)
   keep_features = ["image", "cell_id"] + list(feature_dict.keys())
+
+  print("Extracted columns:", df_extracted_features.columns)
+  print("Extracted shape:", df_extracted_features.shape)
+  print(df_extracted_features.head())
+
   df_extracted_features = df_extracted_features[keep_features]
   df_extracted_features = df_extracted_features.rename(columns=feature_dict)
   return df_extracted_features

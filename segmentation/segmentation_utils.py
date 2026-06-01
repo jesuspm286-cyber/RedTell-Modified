@@ -23,7 +23,7 @@ def get_instance_segmentation_model(num_classes=2):
     # TODO: make sure we have the proper number of detected cells!!!!
     # load an instance segmentation model pre-trained pre-trained on COCO
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(weights="MaskRCNN_ResNet50_FPN_Weights.COCO_V1",
-                                                               box_detections_per_img=100,
+                                                               box_detections_per_img=150,
                                                                box_nms_thresh = 0.5,
                                                                box_score_thresh=0.5)
 
@@ -86,6 +86,7 @@ def apply_mask(image, mask, color, alpha=0.5):
                               image[:, :, c])
   return image
 
+import cv2
 
 def visualize_predictions(img, masks, save_path):
 
@@ -98,16 +99,33 @@ def visualize_predictions(img, masks, save_path):
   for i in range(num_masks):
 
       mask = np.where(masks==i+1, 1, 0)
-      if len(np.unique(mask))>1:
+
+      if len(np.unique(mask)) > 1:
+
+        # Resize mask if dimensions do not match image
+        if mask.shape != img.shape[:2]:
+          mask = cv2.resize(
+              mask.astype(np.uint8),
+              (img.shape[1], img.shape[0]),  # (width, height)
+              interpolation=cv2.INTER_NEAREST
+          )
 
         # add mask
         img = apply_mask(img, mask, colors[i], alpha=0.3)
 
         # add label
-        x,y,h,w = bbox(mask)
+        x, y, h, w = bbox(mask)
 
-        ax.annotate(i+1, ((h+w)/2, (x+y)/2), color='black', weight='bold',
-                        fontsize=12, ha='center', va='center', alpha=1.0)
+        ax.annotate(
+            i + 1,
+            ((h + w) / 2, (x + y) / 2),
+            color='black',
+            weight='bold',
+            fontsize=12,
+            ha='center',
+            va='center',
+            alpha=1.0
+        )
 
   ax.imshow(img)
   ax.set_axis_off()
