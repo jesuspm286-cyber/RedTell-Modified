@@ -7,9 +7,14 @@ LABEL_COLUMN_DTYPE = 'category'
 GROUP_COLUMN_DTYPE = str
 CELL_ID_COLUMN_DTYPE = np.int64
 
+# RAW_NAN_REPRESENTATIONS = {np.nan, None}
+# RAW_PINF_REPRESENTATIONS = {float("inf"), np.inf}
+# RAW_NINF_REPRESENTATIONS = {float("-inf"), -np.inf}
+
 RAW_NAN_REPRESENTATIONS = {np.NAN, np.nan, np.NaN, None}
 RAW_PINF_REPRESENTATIONS = {float('inf'), np.inf, np.infty, np.Inf, np.Infinity, np.PINF}
 RAW_NINF_REPRESENTATIONS = {float('-inf'), -np.inf, -np.infty, -np.Inf, -np.Infinity, np.NINF}
+
 
 NAN_REPRESENTATION = np.nan
 PINF_REPRESENTATION = np.finfo(PREDICTOR_COLUMN_DTYPE).max

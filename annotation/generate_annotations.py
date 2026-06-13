@@ -23,7 +23,7 @@ def create_annotation_table(data_dir, num_cells):
 
 def create_annotation_cells(data_dir, num_cells):
 
-  num_cells = max(num_cells, 200)
+  num_cells = max(num_cells, 100)
   annotation_df = create_annotation_table(data_dir, num_cells)
   annotation_df = annotation_df[[ "annotation_id", "label", "cell_id", "image"]]
 

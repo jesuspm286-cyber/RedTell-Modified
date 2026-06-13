@@ -12,6 +12,7 @@ import eda
 from bayesian_optimization_fitting import train_model_and_generate_learning_curves, fit_model
 
 from models import light_gbm, random_forest, decision_tree
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
 
 
 def main(
@@ -48,8 +49,7 @@ def main(
         raise ValueError(f'too few samples: {num_training_samples}')
     elif num_training_samples < 1_000:
         learning_curve_sample_fractions = [
-           # 0.5, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
-            1.0
+           0.1, 0.2, 0.4, 0.6, 0.8, 1.0
         ]
     else:
         learning_curve_sample_fractions = [
@@ -122,6 +122,38 @@ def main(
         y_pred = pipeline.predict(holdout_data_set.x)
         df_holdout_predictions = holdout_data_set.combine_with_predictions(y_pred)
         df_holdout_predictions.to_csv(out_path, index=False)
+
+        # Confusion matrix
+        labels = sorted(data_ingest_result.all_target_labels)
+
+        cm = confusion_matrix(
+            holdout_data_set.y,
+            y_pred,
+            labels=labels
+        )
+
+        fig, ax = plt.subplots(figsize=(7, 6))
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+        disp.plot(ax=ax, values_format="d", colorbar=False)
+        ax.set_title(f"Holdout Confusion Matrix - {model.name}")
+        plt.tight_layout()
+
+        out_path = os.path.join(out_dir, 'confusion_matrix.png')
+        plt.savefig(out_path, dpi=300)
+        plt.close()
+
+        # Classification report
+        report = classification_report(
+            holdout_data_set.y,
+            y_pred,
+            labels=labels,
+            output_dict=True
+        )
+
+        df_report = pd.DataFrame(report).transpose()
+        out_path = os.path.join(out_dir, 'classification_report.csv')
+        df_report.to_csv(out_path)
+        
 
         feature_names = data_ingest_result.predictor_column_names
         feature_importances = pipeline.named_steps['classifier'].feature_importances_
