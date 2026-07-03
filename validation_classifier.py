@@ -2,8 +2,8 @@ import argparse
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-
-from sklearn.ensemble import GradientBoostingClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import (
     f1_score,
     confusion_matrix,
@@ -38,7 +38,24 @@ y_train = train_labeled["label"]
 X_test = test_labeled[feature_cols]
 y_test = test_labeled["label"]
 
-model = GradientBoostingClassifier(random_state=42)
+#model = GradientBoostingClassifier(random_state=42)
+model = LGBMClassifier(
+    objective="multiclass",
+    class_weight="balanced",
+    random_state=42,
+    n_estimators=600,
+    learning_rate=0.06,
+    num_leaves=50,
+    max_depth=4,
+    n_jobs=-1
+)
+
+# model = RandomForestClassifier(
+#     n_estimators=300,
+#     random_state=42,
+#     class_weight="balanced"
+# )
+
 model.fit(X_train, y_train)
 
 y_pred = model.predict(X_test)

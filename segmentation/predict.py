@@ -15,7 +15,7 @@ def segment_images(img_dir, model):
   print("Using model ", model)
 
   num_classes = 2
-  prob_threshold = 0.5
+  prob_threshold = 0.3
   model_path = os.path.join("segmentation/models", model+".model")
   device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -37,7 +37,7 @@ def segment_images(img_dir, model):
         os.makedirs(os.path.join(img_dir, 'masks'))
 
   # define images
-  image_paths = glob.glob(os.path.join(img_dir, "images", "*.png"))
+  image_paths = glob.glob(os.path.join(img_dir, "images", "*.tif"))
 
   print("Segmenting ",len(image_paths) , " images")
   for img_path in tqdm(image_paths):
@@ -45,6 +45,7 @@ def segment_images(img_dir, model):
           img_raw = Image.open(img_path)
           img = img_raw.convert("L")
           img = img.resize((572,572))
+          #img = img.resize((2048, 2048))
           img = np.array(img)
           torch_img = img/255
           torch_img = torch.as_tensor(torch_img, dtype=torch.float32)
@@ -56,6 +57,7 @@ def segment_images(img_dir, model):
               prediction = model([torch_img.to(device)])
               masks = prediction[0]['masks'][:,0].cpu()
               image_masks = np.zeros((572,572))
+              #image_masks = np.zeros((2048, 2048))
 
               for i in range(0, masks.shape[0]):
                   mask_i = masks[i, :, :]
@@ -69,6 +71,11 @@ def segment_images(img_dir, model):
               image_masks = image_masks.astype(np.uint8)
               image = np.array(img_raw.convert('RGB'))
               img_name = img_path.split("/")[-1]
+
+              # print(img_name)
+              # print("boxes:", len(prediction[0]["boxes"]))
+              # print("scores:", prediction[0]["scores"][:10].cpu().numpy())
+              # print("max mask prob:", masks.max().item() if masks.shape[0] > 0 else "no masks")
 
               # save masks
               save_masks = Image.fromarray(image_masks)

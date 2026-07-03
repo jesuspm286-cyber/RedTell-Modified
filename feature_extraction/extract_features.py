@@ -33,8 +33,12 @@ def initialize_region_props():
 def extract_features_for_cells_in_single_img(img_path, mask_path, 
                                               feature_extractor, region_props):
 
-  img = np.asarray(Image.open(img_path).convert('L'))
+  img = np.asarray(Image.open(img_path).convert('L')).astype(np.float32)
   masks = np.array(Image.open(mask_path))
+  if masks.ndim == 3:
+    masks = masks[:, :, 0]
+
+  masks = masks.astype(np.int32)
 
   sitk_img = sitk.GetImageFromArray(img, 0)
   
@@ -51,7 +55,7 @@ def extract_features_for_cells_in_single_img(img_path, mask_path,
 
   for i in labels:
  
-    mask = np.where(masks == i, 1, 0)
+    mask = np.where(masks == i, 1, 0).astype(np.uint8)
 
     if np.sum(mask) > 10:
 
@@ -60,9 +64,32 @@ def extract_features_for_cells_in_single_img(img_path, mask_path,
                         np.max(cell_pos[1]), np.max(cell_pos[0])]
       cell_area = (cell_bbox[3] - cell_bbox[1]) * (cell_bbox[2] - cell_bbox[0])
 
+      # Skip weird masks with huge bounding boxes
+      if cell_area > 10000:
+          print(
+              "Skipping weird cell",
+              i,
+              "in",
+              os.path.basename(img_path),
+              "bbox_area",
+              cell_area,
+              "pixels",
+              int(np.sum(mask)),
+              flush=True
+          )
+          continue
+
       if cell_area > 0:
 
         # pyradiomics
+        # print(
+        #   "Running PyRadiomics:",
+        #   os.path.basename(img_path),
+        #   "cell", i,
+        #   "pixels", int(np.sum(mask)),
+        #   "bbox_area", cell_area,
+        #   flush=True
+        # )
         sitk_mask = sitk.GetImageFromArray(mask, 0)
         try:
           pyradiomics_results_raw = feature_extractor.execute(sitk_img, sitk_mask)
@@ -132,7 +159,7 @@ def extract_features_for_single_channel(img_dir):
         img_path, mask_path, feature_extractor, region_props
     )
 
-    print(fname, "features extracted:", len(img_features))
+    print(fname, "features extracted:", len(img_features), flush=True)
 
     dataset_features.extend(img_features)
 

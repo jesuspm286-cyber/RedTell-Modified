@@ -1,0 +1,2 @@
+image,cell_id,label,stage1_dead_prediction,dead_probability,borderline_ghost,dead_stage1_correct,dead_missed
+Data_MC/images/PE_RBCs_NPs_1-50_3_15hrs_2.tif,60,Dead,NotDead,0.00018920561203794595,False,False,True

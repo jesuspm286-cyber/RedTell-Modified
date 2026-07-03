@@ -25,7 +25,7 @@ def get_instance_segmentation_model(num_classes=2):
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(weights="MaskRCNN_ResNet50_FPN_Weights.COCO_V1",
                                                                box_detections_per_img=150,
                                                                box_nms_thresh = 0.5,
-                                                               box_score_thresh=0.5)
+                                                               box_score_thresh=0.2)
 
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -71,8 +71,17 @@ def generate_colors(num_colors):
   return colors
 
 
+# def bbox(mask):
+#     a = np.where(mask != 0)
+#     bbox = np.min(a[0]), np.max(a[0]), np.min(a[1]), np.max(a[1])
+#     return bbox
+
 def bbox(mask):
     a = np.where(mask != 0)
+
+    if len(a[0]) == 0:
+        return None
+
     bbox = np.min(a[0]), np.max(a[0]), np.min(a[1]), np.max(a[1])
     return bbox
 
@@ -114,7 +123,14 @@ def visualize_predictions(img, masks, save_path):
         img = apply_mask(img, mask, colors[i], alpha=0.3)
 
         # add label
-        x, y, h, w = bbox(mask)
+        box = bbox(mask)
+
+        if box is None:
+            continue
+
+        x, y, h, w = box
+        
+        #x, y, h, w = bbox(mask)
 
         ax.annotate(
             i + 1,

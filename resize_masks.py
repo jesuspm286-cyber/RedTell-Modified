@@ -2,7 +2,7 @@ import os
 import numpy as np
 from PIL import Image
 
-data_dir = "ValidationData"
+data_dir = "Data_MC"
 image_dir = os.path.join(data_dir, "images")
 mask_dir = os.path.join(data_dir, "masks")
 

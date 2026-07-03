@@ -6,7 +6,7 @@ from feature_extraction.extract_features import extract_features
 from annotation.generate_annotations import create_annotation_cells
 import os
 import sys
-from classification.src.main import main as classify_cells
+#from classification.src.main import main as classify_cells
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "classification", "src"))
 # from main import main as classify_cells
 
@@ -46,15 +46,15 @@ if __name__ == '__main__':
       num_cells = 200
     create_annotation_cells(data, num_cells)
 
-  elif funct == "classify":
-    classify_cells(
-        path=os.path.join(data, "features.csv"),
-        label_column_name="label",
-        cell_id_column_name="cell_id",
-        group_column_name="image",
-        partitioning_method="random",
-        output_folder=os.path.join(data, "classification_results")
-    )
+  # elif funct == "classify":
+  #   classify_cells(
+  #       path=os.path.join(data, "features.csv"),
+  #       label_column_name="label",
+  #       cell_id_column_name="cell_id",
+  #       group_column_name="image",
+  #       partitioning_method="random",
+  #       output_folder=os.path.join(data, "classification_results")
+  #   )
 
   else:
     print("No such function.")

@@ -3,7 +3,7 @@ import numpy as np
 from skimage.io import imread
 import tifffile as tiff
 
-mask_dir = "Data/masks"
+mask_dir = "Data/Masks"
 
 for fname in os.listdir(mask_dir):
     if not fname.lower().endswith(".png"):
