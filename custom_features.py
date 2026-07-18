@@ -21,11 +21,11 @@ from scipy.stats import entropy as scipy_entropy
 
 ########### Change the name of the directory here ###############
 
-DATA_DIR = "Data_MC"
+DATA_DIR = "Colored_data"
 # DATA_DIR = "Data_MC_3hrs"
 # DATA_DIR = "ValidationData"
 
-features_path = os.path.join(DATA_DIR, "features.csv")
+features_path = os.path.join(DATA_DIR, "features_before_size_cleaning.csv")
 df = pd.read_csv(features_path)
 
 rows = []
@@ -48,6 +48,12 @@ for image_name, image_df in tqdm(df.groupby("image"), desc="Processing images"):
     img_pil = Image.open(image_path)
     gray = np.array(img_pil.convert("L")).astype(np.uint8)
     gray_float = gray.astype(float)
+
+    rgb = np.array(img_pil.convert("RGB")).astype(np.float32)
+
+    R = rgb[:, :, 0]
+    G = rgb[:, :, 1]
+    B = rgb[:, :, 2]
 
     if gray.shape != mask_img.shape:
         print("Size mismatch:", fname, gray.shape, mask_img.shape)
@@ -151,6 +157,31 @@ for image_name, image_df in tqdm(df.groupby("image"), desc="Processing images"):
         if pixels.size < 10:
             continue
 
+        r_pixels = R[inner_mask]
+        g_pixels = G[inner_mask]
+        b_pixels = B[inner_mask]
+
+        cell_red_mean = np.mean(r_pixels)
+        cell_green_mean = np.mean(g_pixels)
+        cell_blue_mean = np.mean(b_pixels)
+
+        cell_red_median = np.median(r_pixels)
+        cell_green_median = np.median(g_pixels)
+        cell_blue_median = np.median(b_pixels)
+
+        cell_red_green_ratio = cell_red_median / (cell_green_median + 1e-6)
+        cell_red_blue_ratio = cell_red_median / (cell_blue_median + 1e-6)
+        cell_red_fraction = cell_red_median / (
+            cell_red_median + cell_green_median + cell_blue_median + 1e-6
+        )
+
+        cell_rgb_saturation_proxy = (
+            max(cell_red_median, cell_green_median, cell_blue_median)
+            - min(cell_red_median, cell_green_median, cell_blue_median)
+        ) / (
+            max(cell_red_median, cell_green_median, cell_blue_median) + 1e-6
+        )
+
         # ----------------------------
         # Image-background normalized intensity
         # ----------------------------
@@ -245,6 +276,33 @@ for image_name, image_df in tqdm(df.groupby("image"), desc="Processing images"):
             cell_iqr_to_bg_iqr = np.nan
             cell_dynamic_range_to_bg = np.nan
             cell_internal_contrast_score = np.nan
+
+        if local_bg_pixels.size >= 20:
+            bg_r = R[local_bg_mask]
+            bg_g = G[local_bg_mask]
+            bg_b = B[local_bg_mask]
+
+            local_bg_red_median = np.median(bg_r)
+            local_bg_green_median = np.median(bg_g)
+            local_bg_blue_median = np.median(bg_b)
+
+            cell_red_to_bg_red_ratio = cell_red_median / (local_bg_red_median + 1e-6)
+            cell_red_bg_diff = cell_red_median - local_bg_red_median
+
+            cell_red_fraction_bg = local_bg_red_median / (
+                local_bg_red_median + local_bg_green_median + local_bg_blue_median + 1e-6
+            )
+
+            cell_red_fraction_vs_bg = cell_red_fraction - cell_red_fraction_bg
+
+        else:
+            local_bg_red_median = np.nan
+            local_bg_green_median = np.nan
+            local_bg_blue_median = np.nan
+            cell_red_to_bg_red_ratio = np.nan
+            cell_red_bg_diff = np.nan
+            cell_red_fraction_bg = np.nan
+            cell_red_fraction_vs_bg = np.nan
 
         # ----------------------------
         # Whole-image background comparison
@@ -426,6 +484,27 @@ for image_name, image_df in tqdm(df.groupby("image"), desc="Processing images"):
             "cell_bg_z_median": cell_bg_z_median,
             "cell_bg_z_std": cell_bg_z_std,
             "cell_bg_z_p10": cell_bg_z_p10,
+
+            "cell_red_mean": cell_red_mean,
+            "cell_green_mean": cell_green_mean,
+            "cell_blue_mean": cell_blue_mean,
+
+            "cell_red_median": cell_red_median,
+            "cell_green_median": cell_green_median,
+            "cell_blue_median": cell_blue_median,
+
+            "cell_red_green_ratio": cell_red_green_ratio,
+            "cell_red_blue_ratio": cell_red_blue_ratio,
+            "cell_red_fraction": cell_red_fraction,
+            "cell_rgb_saturation_proxy": cell_rgb_saturation_proxy,
+
+            "local_bg_red_median": local_bg_red_median,
+            "local_bg_green_median": local_bg_green_median,
+            "local_bg_blue_median": local_bg_blue_median,
+            "cell_red_to_bg_red_ratio": cell_red_to_bg_red_ratio,
+            "cell_red_bg_diff": cell_red_bg_diff,
+            "cell_red_fraction_bg": cell_red_fraction_bg,
+            "cell_red_fraction_vs_bg": cell_red_fraction_vs_bg,
         })
 
 
@@ -448,6 +527,13 @@ old_cols = [
     or c.startswith("cell_bg_z")
     or c.startswith("bg_")
     or c.startswith("cell_bg_")
+    or c.startswith("cell_red")
+    or c.startswith("cell_green")
+    or c.startswith("cell_blue")
+    or c.startswith("cell_rgb")
+    or c.startswith("local_bg_red")
+    or c.startswith("local_bg_green")
+    or c.startswith("local_bg_blue")
 ]
 
 df = df.drop(columns=old_cols, errors="ignore")
