@@ -12,12 +12,13 @@ from sklearn.metrics import (
     f1_score,
 )
 from lightgbm import LGBMClassifier
+from sklearn.linear_model import LogisticRegression
 
 
-DATA_DIR = "Data_MC"
-DEAD_THRESHOLD = 0.998
+DATA_DIR = "Colored_data"
+DEAD_THRESHOLD = 0.994
 
-features_path = os.path.join(DATA_DIR, "features_cleaned.csv")
+features_path = os.path.join(DATA_DIR, "features_reviewed.csv")
 df = pd.read_csv(features_path)
 
 labeled = df[df["label"].notna()].copy()
@@ -54,13 +55,21 @@ dead_features = [
         or "cell_std_to_bg" in c.lower()
         or "cell_iqr_to_bg" in c.lower()
         or "radial_" in c.lower()
-        or "shape_solidity" in c.lower()
-        or "shape_extent" in c.lower()
-        or "shape_eccentricity" in c.lower()
-        or "crenation_spike_density" in c.lower()
-        or "crenation_solidity" in c.lower()
+        # or "red" in c.lower()
+        # or "green" in c.lower()
+        or "blue" in c.lower()
+        or "rgb" in c.lower()
+        or "saturation" in c.lower()
     )
 ]
+
+# dead_features = [
+#     "cell_red_fraction_vs_bg",
+#     "cell_rgb_saturation_proxy",
+#     "cell_red_mean",
+#     "cell_red_blue_ratio",
+#     "cell_red_to_bg_red_ratio",
+# ]
 
 print("Stage 1 dead features:")
 for f in dead_features:
@@ -86,6 +95,25 @@ dead_model = LGBMClassifier(
     n_jobs=-1,
 )
 
+# dead_model = LogisticRegression(
+#     class_weight="balanced",
+#     max_iter=5000,
+#     random_state=42,
+# )
+
+# from sklearn.pipeline import Pipeline
+# from sklearn.impute import SimpleImputer
+# from sklearn.linear_model import LogisticRegression
+
+# dead_model = Pipeline([
+#     ("imputer", SimpleImputer(strategy="median")),
+#     ("classifier", LogisticRegression(
+#         class_weight="balanced",
+#         max_iter=5000,
+#         random_state=42,
+#     ))
+# ])
+
 dead_cv_prob = cross_val_predict(
     dead_model,
     X_dead,
@@ -107,6 +135,7 @@ dead_cv_pred = np.where(
 BORDERLINE_LOW = 0.40
 
 dead_scores = dead_cv_prob[:, dead_idx]
+
 
 borderline = (
     (dead_scores >= BORDERLINE_LOW) &
@@ -154,6 +183,16 @@ morph_model = RandomForestClassifier(
 # )
 
 morph_cv_pred = cross_val_predict(morph_model, X_morph, y_morph, cv=5)
+
+morph_cv_prob = cross_val_predict(
+    morph_model,
+    X_morph,
+    y_morph,
+    cv=5,
+    method="predict_proba"
+)
+
+morph_classes = list(morph_model.fit(X_morph, y_morph).classes_)
 
 print("\nMorphology Classifier")
 print(classification_report(y_morph, morph_cv_pred))
@@ -223,6 +262,13 @@ combined.loc[
 
 morph_pred_series = pd.Series(morph_cv_pred, index=morph_labeled.index)
 
+# Add Stage 2 morphology probabilities
+for j, cls in enumerate(morph_classes):
+    combined.loc[morph_labeled.index, f"prob_morph_{cls}"] = morph_cv_prob[:, j]
+
+combined["morph_confidence"] = np.nan
+combined.loc[morph_labeled.index, "morph_confidence"] = morph_cv_prob.max(axis=1)
+
 combined.loc[
     morph_labeled.index,
     "stage2_morphology_prediction",
@@ -237,6 +283,27 @@ combined.loc[
     notdead_idx,
     "stage2_morphology_prediction",
 ]
+
+# # --------------------------------------------------
+# # Let Stage 2 overrule Stage 1 for uncertain dead cells
+# # --------------------------------------------------
+
+# OVERRULE_DEAD = 0.9995
+# MORPH_CONFIDENCE = 0.60
+
+# dead_mask = combined["stage1_dead_prediction"] == "Dead"
+
+# combined.loc[
+#     dead_mask &
+#     (combined["dead_probability"] < OVERRULE_DEAD) &
+#     (combined["morph_confidence"] >= MORPH_CONFIDENCE),
+#     "final_prediction"
+# ] = combined.loc[
+#     dead_mask &
+#     (combined["dead_probability"] < OVERRULE_DEAD) &
+#     (combined["morph_confidence"] >= MORPH_CONFIDENCE),
+#     "stage2_morphology_prediction"
+# ]
 
 bad = combined["final_prediction"].isna()
 
@@ -319,14 +386,26 @@ save_feature_importance(
     "Stage 2 Morphology Classifier: Top 20 Features"
 )
 
+# plt.scatter(
+#     X_dead["cell_red_fraction_vs_bg"],
+#     X_dead["cell_rgb_saturation_proxy"],
+#     c=(y_dead=="Dead"),
+#     cmap="coolwarm"
+# )
+
 # -------------------------
 # Predict unlabeled cells
 # -------------------------
 
 if len(unlabeled) > 0:
+
+    prediction_df = df.copy()
+    # analysis = prediction_df[["image", "cell_id", "label"]].copy()
     analysis = unlabeled[["image", "cell_id"]].copy()
 
     X_unlabeled_dead = unlabeled[dead_features]
+    # X_unlabeled_dead = prediction_df[dead_features]
+
     dead_prob = dead_model.predict_proba(X_unlabeled_dead)
 
     dead_class_index = list(dead_model.classes_).index("Dead")
@@ -357,6 +436,22 @@ if len(unlabeled) > 0:
 
         for i, cls in enumerate(morph_model.classes_):
             analysis.loc[not_dead_mask, f"prob_{cls}"] = morph_prob[:, i]
+
+    # # --------------------------------------------------
+    # # Allow morphology to overrule uncertain dead calls
+    # # --------------------------------------------------
+
+    # analysis.loc[
+    #     (analysis["stage1_prediction"] == "Dead") &
+    #     (analysis["prob_dead"] < OVERRULE_DEAD) &
+    #     (analysis["morph_confidence"] >= MORPH_CONFIDENCE),
+    #     "final_prediction"
+    # ] = analysis.loc[
+    #     (analysis["stage1_prediction"] == "Dead") &
+    #     (analysis["prob_dead"] < OVERRULE_DEAD) &
+    #     (analysis["morph_confidence"] >= MORPH_CONFIDENCE),
+    #     "stage2_prediction"
+    # ]
 
     analysis["review_flag"] = False
     analysis["review_reason"] = ""
@@ -390,6 +485,8 @@ if len(unlabeled) > 0:
         os.path.join(DATA_DIR, "hierarchical_analysis_table.csv"),
         index=False,
     )
+
+# combined.to_csv(os.path.join(DATA_DIR, "hierarchical_training_diagnostics.csv"), index=False)
 
 print("\nSaved:")
 print(os.path.join(DATA_DIR, "stage1_dead_confusion_matrix.png"))
