@@ -485,26 +485,26 @@ for image_name, image_df in tqdm(df.groupby("image"), desc="Processing images"):
             "cell_bg_z_std": cell_bg_z_std,
             "cell_bg_z_p10": cell_bg_z_p10,
 
-            "cell_red_mean": cell_red_mean,
+            # "cell_red_mean": cell_red_mean,
             "cell_green_mean": cell_green_mean,
             "cell_blue_mean": cell_blue_mean,
 
-            "cell_red_median": cell_red_median,
+            # "cell_red_median": cell_red_median,
             "cell_green_median": cell_green_median,
             "cell_blue_median": cell_blue_median,
 
-            "cell_red_green_ratio": cell_red_green_ratio,
-            "cell_red_blue_ratio": cell_red_blue_ratio,
-            "cell_red_fraction": cell_red_fraction,
+            # "cell_red_green_ratio": cell_red_green_ratio,
+            # "cell_red_blue_ratio": cell_red_blue_ratio,
+            # "cell_red_fraction": cell_red_fraction,
             "cell_rgb_saturation_proxy": cell_rgb_saturation_proxy,
 
-            "local_bg_red_median": local_bg_red_median,
+            # "local_bg_red_median": local_bg_red_median,
             "local_bg_green_median": local_bg_green_median,
             "local_bg_blue_median": local_bg_blue_median,
-            "cell_red_to_bg_red_ratio": cell_red_to_bg_red_ratio,
-            "cell_red_bg_diff": cell_red_bg_diff,
-            "cell_red_fraction_bg": cell_red_fraction_bg,
-            "cell_red_fraction_vs_bg": cell_red_fraction_vs_bg,
+            # "cell_red_to_bg_red_ratio": cell_red_to_bg_red_ratio,
+            # "cell_red_bg_diff": cell_red_bg_diff,
+            # "cell_red_fraction_bg": cell_red_fraction_bg,
+            # "cell_red_fraction_vs_bg": cell_red_fraction_vs_bg,
         })
 
 
