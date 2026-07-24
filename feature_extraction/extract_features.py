@@ -65,9 +65,9 @@ def extract_features_for_cells_in_single_img(img_path, mask_path,
       cell_area = (cell_bbox[3] - cell_bbox[1]) * (cell_bbox[2] - cell_bbox[0])
 
       # Skip weird masks with huge bounding boxes
-      if cell_area > 10000:
+      if cell_area > 8000 or cell_area < 1000:
           print(
-              "Skipping weird cell",
+              "Skipping non-cell object",
               i,
               "in",
               os.path.basename(img_path),

@@ -1,12 +1,12 @@
 import os
 import pandas as pd
 
-DATA_DIR = "Data_MC"   # change if needed
-FEATURES_FILE = os.path.join(DATA_DIR, "features.csv")
+DATA_DIR = "Colored_data"   # change if needed
+FEATURES_FILE = os.path.join(DATA_DIR, "features_reviewed.csv")
 
 # Adjust these after checking your feature ranges
 MIN_AREA = 1000      # removes tiny debris / false cells
-MAX_AREA = 4000    # removes masks containing multiple cells or huge artifacts
+MAX_AREA = 8000    # removes masks containing multiple cells or huge artifacts
 
 df = pd.read_csv(FEATURES_FILE)
 
@@ -36,7 +36,7 @@ if area_col is None:
 print("Using area column:", area_col)
 
 # Keep a backup
-backup_path = os.path.join(DATA_DIR, "features_before_size_cleaning.csv")
+backup_path = os.path.join(DATA_DIR, "features_before_size_cleaning_new.csv")
 df.to_csv(backup_path, index=False)
 print("Backup saved to:", backup_path)
 
@@ -48,7 +48,7 @@ removed = df[too_small | too_large].copy()
 cleaned = df[~(too_small | too_large)].copy()
 
 removed_path = os.path.join(DATA_DIR, "removed_size_outliers.csv")
-cleaned_path = os.path.join(DATA_DIR, "features_cleaned.csv")
+cleaned_path = os.path.join(DATA_DIR, "features_cleaned_new.csv")
 
 removed.to_csv(removed_path, index=False)
 cleaned.to_csv(cleaned_path, index=False)

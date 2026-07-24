@@ -3,12 +3,18 @@ import numpy as np
 from skimage.io import imread, imsave
 from skimage.transform import resize
 from tqdm import tqdm
+import argparse
 
-DATA_DIR = "Colored_data"
-OUTPUT_DIR = "Colored_data"
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--data", required=True)
+args = parser.parse_args()
+
+DATA_DIR = args.data
+OUTPUT_DIR = args.data
 TARGET_SIZE = 562
 
-input_dir = os.path.join(DATA_DIR, "original_images_15hrs")
+input_dir = os.path.join(DATA_DIR, "original_images")
 output_dir = os.path.join(OUTPUT_DIR, "images")
 os.makedirs(output_dir, exist_ok=True)
 

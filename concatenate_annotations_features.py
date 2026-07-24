@@ -1,13 +1,16 @@
 import pandas as pd
+import argparse
+import os
 
-# features_file = pd.read_csv("ValidationData/features.csv")
-# annotations_file = pd.read_csv("ValidationData/annotations_4classes.csv")
+parser = argparse.ArgumentParser()
+parser.add_argument("--data", required=True)
+args = parser.parse_args()
 
-features_file = pd.read_csv("Data_MC/features.csv")
-annotations_file = pd.read_csv("Data_MC/annotations.csv")
+DATA_DIR = args.data
 
-# features_file = pd.read_csv("Data_for_model/features.csv")
-# annotations_file = pd.read_csv("Data_for_model/annotations_4classes.csv")
+features_file = pd.read_csv(os.path.join(DATA_DIR, "features.csv"))
+annotations_file = pd.read_csv(os.path.join(DATA_DIR, "annotations.csv"))
+
 
 features = features_file
 ann = annotations_file
@@ -18,5 +21,5 @@ features = features.merge(
     how="left"
 )
 
-features.to_csv("Data_MC/features.csv", index=False)
+features.to_csv(os.path.join(DATA_DIR, "features.csv"), index=False)
 print(features["label"].value_counts(dropna=False))

@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
+import argparse
+
 
 from skimage.measure import find_contours, regionprops
 from scipy.signal import find_peaks
@@ -19,13 +21,14 @@ from skimage.morphology import disk
 from skimage.feature import local_binary_pattern
 from scipy.stats import entropy as scipy_entropy
 
-########### Change the name of the directory here ###############
 
-DATA_DIR = "Colored_data"
-# DATA_DIR = "Data_MC_3hrs"
-# DATA_DIR = "ValidationData"
+parser = argparse.ArgumentParser()
+parser.add_argument("--data", required=True)
+args = parser.parse_args()
 
-features_path = os.path.join(DATA_DIR, "features_before_size_cleaning.csv")
+DATA_DIR = args.data
+
+features_path = os.path.join(DATA_DIR, "features.csv")
 df = pd.read_csv(features_path)
 
 rows = []
